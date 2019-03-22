@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -43,7 +44,12 @@ public class MainActivity extends AppCompatActivity {
         listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
         listView.setAdapter(adapter);
         listView.setNestedScrollingEnabled(true);
-        listView.setTextFilterEnabled(true);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+            public void onItemClick(AdapterView<?> listView, View itemView, int itemPosition, long itemId)
+            {
+                Toast.makeText(getApplicationContext(), (CharSequence) items[itemPosition],Toast.LENGTH_SHORT).show();
+            }
+        });
 
         priceFinder = new PriceFinder();
         firstItem = new Item("Roku Streaming Stick", 49.99, "https://www.roku.com/products/streaming-stick");
@@ -52,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
     public void onListItemClick(ListView parent, View v, int position, long id){
-        Toast.makeText(this, "You have selected " + items[position],Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "You have selected " + (CharSequence) items[position],Toast.LENGTH_SHORT).show();
     }
 
     private void displayPrices(){
