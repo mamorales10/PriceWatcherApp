@@ -1,6 +1,9 @@
 package cs4330.cs.utep.mypricewatcher;
 
-public class Item {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class Item implements Parcelable {
 
     private String name;
     private double initial_Price;
@@ -45,4 +48,38 @@ public class Item {
         return url;
     }
 
+    public String toString(){
+        return this.name;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(this.name);
+        dest.writeDouble(this.initial_Price);
+        dest.writeDouble(this.current_Price);
+        dest.writeDouble(this.change_percentage);
+        dest.writeString(this.url);
+    }
+
+    private Item(Parcel in){
+        this.name = in.readString();
+        this.initial_Price = in.readDouble();
+        this.current_Price = in.readDouble();
+        this.change_percentage = in.readDouble();
+        this.url = in.readString();
+    }
+
+    public static final Parcelable.Creator<Item> CREATOR = new Parcelable.Creator<Item>(){
+        public Item createFromParcel(Parcel source){
+            return new Item(source);
+        }
+        public Item[] newArray(int size){
+            return new Item[size];
+        }
+    };
 }
