@@ -23,6 +23,8 @@ public class Item implements Parcelable {
         return name;
     }
 
+    public void setName(String name){ this.name = name; }
+
     public double getInitial_Price(){
         return initial_Price;
     }
@@ -47,6 +49,8 @@ public class Item implements Parcelable {
     public String getUrl(){
         return url;
     }
+
+    public void setUrl(String url){this.url = url;}
 
     public String toString(){
         return this.name;

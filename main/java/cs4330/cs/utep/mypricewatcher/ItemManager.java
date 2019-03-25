@@ -1,4 +1,4 @@
-package cs4330.cs.utep.edu.mypricewatcher;
+package cs4330.cs.utep.mypricewatcher;
 import java.util.ArrayList;
 import java.util.List;
 //package cs4330.cs.utep.mypricewatcher;

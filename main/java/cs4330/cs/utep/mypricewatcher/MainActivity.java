@@ -2,47 +2,50 @@ package cs4330.cs.utep.mypricewatcher;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.support.v4.app.DialogFragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements NewItemFragment.NoticeDialogListener {
 
-    private Item firstItem;
     private ListView listView;
-    //private String[] items = {"whatever", "f", "m", "l", "I'm supreme overlord!", "Can", "whatever", "f", "m", "l", "I'm supreme overlord!", "Can"};
-    private Item[] items = {new Item("what", 0.00, "http://www.cs.utep.edu/cheon/cs4330/homework/hw2.txt"),
-            new Item("am", 120.00, "http://www.cs.utep.edu/cheon/cs4330/homework/hw2.txt"),
-            new Item("I", 10.00, "http://www.cs.utep.edu/cheon/cs4330/homework/hw2.txt"),
-            new Item("doing?", 330.00, "http://www.cs.utep.edu/cheon/cs4330/homework/hw2.txt")};
-    private PriceFinder priceFinder;
-    private TextView nameDisplay;
-    private TextView initPriceDisplay;
-    private TextView currentPriceDisplay;
-    private TextView percentageDisplay;
-    private Button refreshButton;
-    private Button siteButton;
+    private ItemManager itemManager;
+    private Item[] items = {new Item("Movie", 30.00, "https://www.amazon.com/AVENGERS-INFINITY-Robert-Downey-Jr/dp/B07BZC5KHW"),
+            new Item("Vizio TV", 999.00, "https://www.bestbuy.com/site/vizio-70-class-led-e-series-2160p-smart-4k-uhd-tv-with-hdr/6259880"),
+            new Item("Water Bottle", 1.00, "https://www.target.com/p/purified-water-24pk-16-9-fl-oz-bottles-market-pantry-153/-/A-13319038"),
+            new Item("Game", 59.99, "https://www.gamestop.com/product/ps4/games/sekiro-shadows-die-twice/164383"),
+            new Item("Roku Streaming Stick", 49.99, "https://www.roku.com/products/streaming-stick")};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
-        nameDisplay = findViewById(R.id.itemName);
-        initPriceDisplay = findViewById(R.id.initPrice);
-        currentPriceDisplay = findViewById(R.id.currentPrice);
-        percentageDisplay = findViewById(R.id.change);
 
-        siteButton = findViewById(R.id.siteButton);
-        siteButton.setOnClickListener(this::searchWebsite);
+        itemManager = new ItemManager();
 
-        ArrayAdapter<Item> adapter = new ArrayAdapter<Item>(this, R.layout.activity_listview, R.id.theTextView, items);
+        for(Item item : items){
+            itemManager.addItem(item);
+        }
+
+        ArrayAdapter<Item> adapter = new ArrayAdapter<Item>(this, R.layout.activity_listview, R.id.theTextView, itemManager.getItemList());
 
         listView = findViewById(R.id.listView);
         listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
@@ -62,25 +65,58 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        priceFinder = new PriceFinder();
-        firstItem = new Item("Roku Streaming Stick", 49.99, "https://www.roku.com/products/streaming-stick");
 
-        //displayPrices();
+
+
 
     }
-    public void onListItemClick(ListView parent, View v, int position, long id){
-        Toast.makeText(this, "You have selected " + (CharSequence) items[position],Toast.LENGTH_SHORT).show();
+
+    public boolean onCreateOptionsMenu(Menu menu){
+        super.onCreateOptionsMenu(menu);
+        createMenu(menu);
+        return true;
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item){
+        return menuChoice(item);
+    }
+
+
+    private void createMenu(Menu menu){
+        MenuItem menuItem1 = menu.add(0, 0, 0, "Add Item");
+    }
+     private boolean menuChoice(MenuItem item){
+        switch(item.getItemId()){
+            case 0:
+                Log.d("tag", "Went through the switch statement");
+                showAddItemDialog();
+                return true;
+        }
+        Log.d("tag", "Did not go throught the switch.");
+        return false;
+     }
+
+
+    public void showAddItemDialog(){
+        NewItemFragment dialog = NewItemFragment.newInstance("This is a title");
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.commit();
+        dialog.show(fragmentManager, "NewItemFragment");
+
+
+    }
+
+    public void onDialogPositiveClick(DialogFragment dialog, EditText itemName, EditText itemPrice, EditText itemUrl){
+        // Use manager here
+        dialog.getDialog().cancel();
+    }
+
+    public void onDialogNegativeClick(DialogFragment dialog){
+        dialog.getDialog().cancel();
     }
 
 
 
-
-
-
-
-    public void searchWebsite(View view){
-
-        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(firstItem.getUrl())));
-    }
 
 }

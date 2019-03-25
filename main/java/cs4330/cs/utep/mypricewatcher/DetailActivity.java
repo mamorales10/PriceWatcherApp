@@ -23,7 +23,7 @@ public class DetailActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_detail);
 
         Intent i = getIntent();
         String name = i.getStringExtra("name");
@@ -45,18 +45,18 @@ public class DetailActivity extends AppCompatActivity {
         percentageDisplay = findViewById(R.id.change);
 
         refreshButton = findViewById(R.id.refreshButton);
-        //refreshButton.setOnClickListener(this::refreshClicked);
+        refreshButton.setOnClickListener(this::refreshClicked);
 
         siteButton = findViewById(R.id.siteButton);
-        //siteButton.setOnClickListener(this::searchWebsite);
+        siteButton.setOnClickListener(this::searchWebsite);
 
         priceFinder = new PriceFinder();
         displayPrices();
     }
 
-    public void searchWebsite(View view, String url){
+    public void searchWebsite(View view){
 
-        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(item.getUrl())));
     }
 
     private void displayPrices(){
@@ -66,7 +66,7 @@ public class DetailActivity extends AppCompatActivity {
         findPrice(item);
 
         currentPriceDisplay.setText(String.format("$%.2f", item.getCurrent_Price()));
-        percentageDisplay.setText(String.format("%% %.2f", item.getChange_Percentage()));
+        percentageDisplay.setText(String.format("%.2f %%", item.getChange_Percentage()));
     }
 
     private void findPrice(Item item){
