@@ -4,7 +4,7 @@ import java.util.List;
 //package cs4330.cs.utep.mypricewatcher;
 
 public class ItemManager {
-    private List itemList = new ArrayList();
+    private ArrayList itemList = new ArrayList();
 
     public ItemManager(){
     }
@@ -13,7 +13,7 @@ public class ItemManager {
         return itemList;
     }
 
-    public void setItemList(List itemList) {
+    public void setItemList(ArrayList itemList) {
         this.itemList = itemList;
     }
 

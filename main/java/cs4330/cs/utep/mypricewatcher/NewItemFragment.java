@@ -78,7 +78,6 @@ public class NewItemFragment extends DialogFragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState){
         super.onViewCreated(view, savedInstanceState);
         itemName = (EditText) getView().findViewById(R.id.editName);
-        itemPrice = (EditText) getView().findViewById(R.id.editPrice);
         itemURL = (EditText) getView().findViewById(R.id.editURL);
         getDialog().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
 

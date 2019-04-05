@@ -21,6 +21,9 @@ import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
 
     private ListView listView;
@@ -111,24 +114,44 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+
     }
 
-    public void showEditItemDialog(){
+    public void showEditItemDialog(int itemIndex){
 
-        AlertDialog editDialog = new AlertDialog.Builder(this)
+        List itemList = itemManager.getItemList();
+        Item item = (Item) itemList.get(itemIndex);
+        TextView itemName = (TextView) findViewById(R.id.editName);
+        TextView itemURL;
+        AlertDialog editDialog;
+
+
+        itemName.setText(item.getName());
+
+        itemURL = (TextView) findViewById(R.id.editURL);
+        itemURL.setText(item.getUrl());
+
+        editDialog = new AlertDialog.Builder(this)
                 .setTitle("Edit Item")
                 .setView(R.layout.fragment_new_item)
                 .setPositiveButton("Save", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Log.d("tag", "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
+                        String name = itemName.getText().toString();
+                        itemManager.editItemName(item, name);
+
+                        String url = itemURL.getText().toString();
+                        itemManager.editItemURL(item, url);
+
                     }
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
-        TextView itemName = (TextView) editDialog.findViewById(R.id.editName);
-        itemName.setText("This is a test");
+
+
     }
+
 
 
 
