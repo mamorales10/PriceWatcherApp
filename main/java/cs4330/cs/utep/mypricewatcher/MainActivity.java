@@ -1,10 +1,9 @@
 package cs4330.cs.utep.mypricewatcher;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
-import android.support.v4.app.DialogFragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,7 +21,7 @@ import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity implements NewItemFragment.NoticeDialogListener {
+public class MainActivity extends AppCompatActivity {
 
     private ListView listView;
     private ItemManager itemManager;
@@ -89,7 +88,8 @@ public class MainActivity extends AppCompatActivity implements NewItemFragment.N
         switch(item.getItemId()){
             case 0:
                 Log.d("tag", "Went through the switch statement");
-                showAddItemDialog();
+                //showAddItemDialog();
+                showEditItemDialog();
                 return true;
         }
         Log.d("tag", "Did not go throught the switch.");
@@ -98,22 +98,36 @@ public class MainActivity extends AppCompatActivity implements NewItemFragment.N
 
 
     public void showAddItemDialog(){
-        NewItemFragment dialog = NewItemFragment.newInstance("This is a title");
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.commit();
-        dialog.show(fragmentManager, "NewItemFragment");
 
-
+        new AlertDialog.Builder(this)
+                .setTitle("Add Item")
+                .setView(R.layout.fragment_new_item)
+                .setMessage("Enter item information")
+                .setPositiveButton("Save", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Log.d("tag", "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
-    public void onDialogPositiveClick(DialogFragment dialog, EditText itemName, EditText itemPrice, EditText itemUrl){
-        // Use manager here
-        dialog.getDialog().cancel();
-    }
+    public void showEditItemDialog(){
 
-    public void onDialogNegativeClick(DialogFragment dialog){
-        dialog.getDialog().cancel();
+        AlertDialog editDialog = new AlertDialog.Builder(this)
+                .setTitle("Edit Item")
+                .setView(R.layout.fragment_new_item)
+                .setPositiveButton("Save", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Log.d("tag", "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+        TextView itemName = (TextView) editDialog.findViewById(R.id.editName);
+        itemName.setText("This is a test");
     }
 
 
