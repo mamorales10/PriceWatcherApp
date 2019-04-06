@@ -20,6 +20,9 @@ import android.widget.ListView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.AdapterView.AdapterContextMenuInfo;
+import java.util.List;
+import android.view.ContextMenu;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,11 +69,30 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(i);
             }
         });
+        registerForContextMenu(listView);
+    }
+    
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        //menu.setHeaderTitle("Context Menu");
+        menu.add(0, v.getId(), 0, "Edit");
+        menu.add(0, v.getId(), 0, "Delete");
+    }
 
-
-
-
-
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        final CharSequence input = item.getTitle();
+        AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+        int listPosition = info.position;
+        if(input == "Delete"){
+            showDeleteItemDialog(listPosition);
+        }
+        else if (input == "Edit"){
+            //showEditItemDialog(item.getItemId());
+        }
+        Toast.makeText(this, "Selected Item: " + item.getTitle(), Toast.LENGTH_SHORT).show();
+        return true;
     }
 
     public boolean onCreateOptionsMenu(Menu menu){
@@ -82,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item){
         return menuChoice(item);
     }
-
 
     private void createMenu(Menu menu){
         MenuItem menuItem1 = menu.add(0, 0, 0, "Add Item");
@@ -148,12 +169,15 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
-
-
+        
     }
 
-
-
-
-
+    public void showDeleteItemDialog(int index){
+        List itemList = itemManager.getItemList();
+        Item it = (Item) itemList.get(index);
+        itemManager.removeItem(it);
+        ArrayAdapter<Item> adapter = ( ArrayAdapter) listView.getAdapter();
+        adapter.notifyDataSetChanged();
+    }
+    
 }
