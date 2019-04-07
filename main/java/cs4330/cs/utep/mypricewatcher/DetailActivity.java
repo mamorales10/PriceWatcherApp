@@ -19,6 +19,7 @@ public class DetailActivity extends AppCompatActivity {
     private TextView percentageDisplay;
     private Button refreshButton;
     private Button siteButton;
+    private String position; // Item list position
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +32,8 @@ public class DetailActivity extends AppCompatActivity {
         Double init_price = Double.parseDouble(i.getStringExtra("init"));
 
         String url = i.getStringExtra("url");
+
+        position = i.getStringExtra("position");
 
         item = new Item(name, init_price, url);
 
@@ -59,6 +62,15 @@ public class DetailActivity extends AppCompatActivity {
         startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(item.getUrl())));
     }
 
+    public void onBackPressed(){
+        super.onBackPressed();
+        Intent i = new Intent();
+        i.putExtra("position", position);
+        i.putExtra("price", Double.toString(item.getCurrent_Price()));
+        setResult(RESULT_OK, i);
+        finish();
+    }
+
     private void displayPrices(){
         nameDisplay.setText(String.format("%s", item.getName()));
         initPriceDisplay.setText(String.format("$%.2f", item.getInitial_Price()));
@@ -67,6 +79,7 @@ public class DetailActivity extends AppCompatActivity {
 
         currentPriceDisplay.setText(String.format("$%.2f", item.getCurrent_Price()));
         percentageDisplay.setText(String.format("%.2f %%", item.getChange_Percentage()));
+
     }
 
     private void findPrice(Item item){
@@ -75,8 +88,7 @@ public class DetailActivity extends AppCompatActivity {
         if(item.getCurrent_Price() != currentPrice) {
             item.setCurrent_Price(currentPrice);
 
-            double change = (currentPrice - item.getInitial_Price()) / item.getInitial_Price() * 100;
-            item.setChange_Percentage(change);
+
 
         }
     }

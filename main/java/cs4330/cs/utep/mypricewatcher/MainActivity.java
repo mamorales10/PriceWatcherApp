@@ -1,5 +1,6 @@
 package cs4330.cs.utep.mypricewatcher;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
@@ -7,6 +8,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -24,6 +26,8 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
 import java.util.List;
 import android.view.ContextMenu;
 
+import org.w3c.dom.Text;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
             new Item("Water Bottle", 1.00, "https://www.target.com/p/purified-water-24pk-16-9-fl-oz-bottles-market-pantry-153/-/A-13319038"),
             new Item("Game", 59.99, "https://www.gamestop.com/product/ps4/games/sekiro-shadows-die-twice/164383"),
             new Item("Roku Streaming Stick", 49.99, "https://www.roku.com/products/streaming-stick")};
+    private  int lastChosenPosition = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +55,9 @@ public class MainActivity extends AppCompatActivity {
             itemManager.addItem(item);
         }
 
-        ArrayAdapter<Item> adapter = new ArrayAdapter<Item>(this, R.layout.activity_listview, R.id.theTextView, itemManager.getItemList());
+        //ArrayAdapter<Item> adapter = new ArrayAdapter<Item>(this, R.layout.activity_listview, R.id.theTextView, itemManager.getItemList());
+
+        ItemsAdapter adapter = new ItemsAdapter(this, itemManager.getItemList());
 
         listView = findViewById(R.id.listView);
         listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
@@ -59,19 +66,57 @@ public class MainActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
             public void onItemClick(AdapterView<?> listView, View itemView, int itemPosition, long itemId)
             {
+                List itemList = itemManager.getItemList();
+                Item item = (Item) itemList.get(itemPosition);
+                String name =  item.getName();
+                double price = item.getInitial_Price();
+                String url = item.getUrl();
 
-                //Toast.makeText(getApplicationContext(), (CharSequence) items[itemPosition],Toast.LENGTH_SHORT).show();
                 Intent i = new Intent(getApplicationContext(), DetailActivity.class);
-                i.putExtra("name", items[itemPosition].getName());
-                i.putExtra("init", Double.toString(items[itemPosition].getInitial_Price()));
-                i.putExtra("url", items[itemPosition].getUrl());
+                i.putExtra("name", name);
+                i.putExtra("init", Double.toString(price));
+                i.putExtra("url", url);
 
-                startActivity(i);
+                // Added this
+                i.putExtra("position", Integer.toString(itemPosition));
+
+                lastChosenPosition = itemPosition;
+
+                //View chosenItem = listView.getChildAt(itemPosition);
+               // TextView listPrice = chosenItem.findViewById(R.id.percentage_in_list);
+                //listPrice.setText(String.format("$%.2f", 1234.43));
+                //startActivity(i);
+
+                // Added this
+                startActivityForResult(i, 0);
+
             }
         });
         registerForContextMenu(listView);
     }
-    
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 0) {
+            if(resultCode == RESULT_OK) {
+                int position = Integer.parseInt(data.getStringExtra("position"));
+                double price = Double.parseDouble(data.getStringExtra("price"));
+
+
+                List itemList = itemManager.getItemList();
+                Item item = (Item) itemList.get(position);
+
+                View chosenItem = listView.getChildAt(position);
+                TextView listPrice = chosenItem.findViewById(R.id.price_in_list);
+                listPrice.setText(String.format("$%.2f", price));
+
+                ArrayAdapter<Item> adapter = (ArrayAdapter) listView.getAdapter();
+                adapter.notifyDataSetChanged();
+
+            }
+        }
+    }
+
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
@@ -89,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
             showDeleteItemDialog(listPosition);
         }
         else if (input == "Edit"){
-            //showEditItemDialog(item.getItemId());
+            showEditItemDialog(listPosition);
         }
         Toast.makeText(this, "Selected Item: " + item.getTitle(), Toast.LENGTH_SHORT).show();
         return true;
@@ -108,33 +153,49 @@ public class MainActivity extends AppCompatActivity {
     private void createMenu(Menu menu){
         MenuItem menuItem1 = menu.add(0, 0, 0, "Add Item");
     }
-     private boolean menuChoice(MenuItem item){
+    private boolean menuChoice(MenuItem item){
         switch(item.getItemId()){
             case 0:
                 Log.d("tag", "Went through the switch statement");
-                //showAddItemDialog();
-                showEditItemDialog();
+                showAddItemDialog();
                 return true;
         }
         Log.d("tag", "Did not go throught the switch.");
         return false;
-     }
+    }
 
 
     public void showAddItemDialog(){
 
-        new AlertDialog.Builder(this)
-                .setTitle("Add Item")
-                .setView(R.layout.fragment_new_item)
-                .setMessage("Enter item information")
-                .setPositiveButton("Save", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        Log.d("tag", "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                    }
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+        AlertDialog.Builder editDialog = new AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.fragment_new_item, null);
+        editDialog.setView(dialogView);
+        editDialog.setTitle("Add Item");
+        editDialog.setMessage("Enter item information");
+        final EditText itemName = (EditText) dialogView.findViewById(R.id.editName);
+        final EditText itemURL = (EditText) dialogView.findViewById(R.id.editURL);
+        editDialog.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String name = itemName.getText().toString();
+                String url = itemURL.getText().toString();
+
+                PriceFinder priceFinder = new PriceFinder();
+
+                Item newItem = new Item(name, priceFinder.getPrice(url), url);
+                itemManager.addItem(newItem);
+                ArrayAdapter<Item> adapter = (ArrayAdapter) listView.getAdapter();
+
+                adapter.notifyDataSetChanged();
+            }
+        }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        AlertDialog dialog = editDialog.create();
+        dialog.show();
 
     }
 
@@ -142,34 +203,38 @@ public class MainActivity extends AppCompatActivity {
 
         List itemList = itemManager.getItemList();
         Item item = (Item) itemList.get(itemIndex);
-        TextView itemName = (TextView) findViewById(R.id.editName);
-        TextView itemURL;
-        AlertDialog editDialog;
 
+        AlertDialog.Builder editDialog = new AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.fragment_new_item, null);
+        editDialog.setView(dialogView);
+        editDialog.setTitle("Edit Item");
+        final EditText itemName = dialogView.findViewById(R.id.editName);
+        final EditText itemURL = dialogView.findViewById(R.id.editURL);
 
         itemName.setText(item.getName());
-
-        itemURL = (TextView) findViewById(R.id.editURL);
         itemURL.setText(item.getUrl());
 
-        editDialog = new AlertDialog.Builder(this)
-                .setTitle("Edit Item")
-                .setView(R.layout.fragment_new_item)
-                .setPositiveButton("Save", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
+        editDialog.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String name = itemName.getText().toString();
+                String url = itemURL.getText().toString();
 
-                        String name = itemName.getText().toString();
-                        itemManager.editItemName(item, name);
+                itemManager.editItemName(item, name);
+                itemManager.editItemURL(item, url);
+                ArrayAdapter<Item> adapter = (ArrayAdapter) listView.getAdapter();
 
-                        String url = itemURL.getText().toString();
-                        itemManager.editItemURL(item, url);
+                adapter.notifyDataSetChanged();
+            }
+        }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        AlertDialog dialog = editDialog.create();
+        dialog.show();
 
-                    }
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-        
     }
 
     public void showDeleteItemDialog(int index){
@@ -179,5 +244,5 @@ public class MainActivity extends AppCompatActivity {
         ArrayAdapter<Item> adapter = ( ArrayAdapter) listView.getAdapter();
         adapter.notifyDataSetChanged();
     }
-    
+
 }

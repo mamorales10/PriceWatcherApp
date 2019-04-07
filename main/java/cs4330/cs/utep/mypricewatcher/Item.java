@@ -35,6 +35,7 @@ public class Item implements Parcelable {
 
     public void setCurrent_Price(double current_Price){
         this.current_Price = current_Price;
+        setChange_Percentage(current_Price);
     }
 
     public double getChange_Percentage(){
@@ -42,8 +43,8 @@ public class Item implements Parcelable {
     }
 
     /* MainActivity will perform calculation */
-    public void setChange_Percentage(double change_percentage){
-        this.change_percentage = change_percentage;
+    private void setChange_Percentage(double currentPrice){
+        this.change_percentage = (currentPrice - getInitial_Price()) / getInitial_Price() * 100;;
     }
 
     public String getUrl(){
