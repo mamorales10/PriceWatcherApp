@@ -1,35 +1,25 @@
 package cs4330.cs.utep.mypricewatcher;
 
-import android.content.Context;
+
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.net.Uri;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import java.util.List;
 import android.view.ContextMenu;
-
-import org.w3c.dom.Text;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -40,7 +30,6 @@ public class MainActivity extends AppCompatActivity {
             new Item("Water Bottle", 1.00, "https://www.target.com/p/purified-water-24pk-16-9-fl-oz-bottles-market-pantry-153/-/A-13319038"),
             new Item("Game", 59.99, "https://www.gamestop.com/product/ps4/games/sekiro-shadows-die-twice/164383"),
             new Item("Roku Streaming Stick", 49.99, "https://www.roku.com/products/streaming-stick")};
-    private  int lastChosenPosition = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,8 +44,6 @@ public class MainActivity extends AppCompatActivity {
             itemManager.addItem(item);
         }
 
-        //ArrayAdapter<Item> adapter = new ArrayAdapter<Item>(this, R.layout.activity_listview, R.id.theTextView, itemManager.getItemList());
-
         ItemsAdapter adapter = new ItemsAdapter(this, itemManager.getItemList());
 
         listView = findViewById(R.id.listView);
@@ -67,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> listView, View itemView, int itemPosition, long itemId)
             {
                 List itemList = itemManager.getItemList();
-                Item item = (Item) itemList.get(itemPosition);
+                Item item = (Item) itemList.get(itemPosition - listView.getFirstVisiblePosition());
                 String name =  item.getName();
                 double price = item.getInitial_Price();
                 String url = item.getUrl();
@@ -76,18 +63,8 @@ public class MainActivity extends AppCompatActivity {
                 i.putExtra("name", name);
                 i.putExtra("init", Double.toString(price));
                 i.putExtra("url", url);
+                i.putExtra("position", Integer.toString(itemPosition - listView.getFirstVisiblePosition()));
 
-                // Added this
-                i.putExtra("position", Integer.toString(itemPosition));
-
-                lastChosenPosition = itemPosition;
-
-                //View chosenItem = listView.getChildAt(itemPosition);
-               // TextView listPrice = chosenItem.findViewById(R.id.percentage_in_list);
-                //listPrice.setText(String.format("$%.2f", 1234.43));
-                //startActivity(i);
-
-                // Added this
                 startActivityForResult(i, 0);
 
             }
@@ -102,15 +79,14 @@ public class MainActivity extends AppCompatActivity {
                 int position = Integer.parseInt(data.getStringExtra("position"));
                 double price = Double.parseDouble(data.getStringExtra("price"));
 
-
-                List itemList = itemManager.getItemList();
-                Item item = (Item) itemList.get(position);
-
                 View chosenItem = listView.getChildAt(position);
                 TextView listPrice = chosenItem.findViewById(R.id.price_in_list);
+
                 listPrice.setText(String.format("$%.2f", price));
 
                 ArrayAdapter<Item> adapter = (ArrayAdapter) listView.getAdapter();
+                Item item = adapter.getItem(position);
+                item.setCurrent_Price(price);
                 adapter.notifyDataSetChanged();
 
             }
@@ -153,6 +129,7 @@ public class MainActivity extends AppCompatActivity {
     private void createMenu(Menu menu){
         MenuItem menuItem1 = menu.add(0, 0, 0, "Add Item");
     }
+    
     private boolean menuChoice(MenuItem item){
         switch(item.getItemId()){
             case 0:
@@ -167,14 +144,14 @@ public class MainActivity extends AppCompatActivity {
 
     public void showAddItemDialog(){
 
-        AlertDialog.Builder editDialog = new AlertDialog.Builder(this);
-        View dialogView = getLayoutInflater().inflate(R.layout.fragment_new_item, null);
-        editDialog.setView(dialogView);
-        editDialog.setTitle("Add Item");
-        editDialog.setMessage("Enter item information");
+        AlertDialog.Builder addDialog = new AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_new_item, null);
+        addDialog.setView(dialogView);
+        addDialog.setTitle("Add Item");
+        addDialog.setMessage("Enter item information");
         final EditText itemName = (EditText) dialogView.findViewById(R.id.editName);
         final EditText itemURL = (EditText) dialogView.findViewById(R.id.editURL);
-        editDialog.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+        addDialog.setPositiveButton("Save", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String name = itemName.getText().toString();
@@ -185,7 +162,6 @@ public class MainActivity extends AppCompatActivity {
                 Item newItem = new Item(name, priceFinder.getPrice(url), url);
                 itemManager.addItem(newItem);
                 ArrayAdapter<Item> adapter = (ArrayAdapter) listView.getAdapter();
-
                 adapter.notifyDataSetChanged();
             }
         }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -194,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
                 dialog.cancel();
             }
         });
-        AlertDialog dialog = editDialog.create();
+        AlertDialog dialog = addDialog.create();
         dialog.show();
 
     }
@@ -205,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
         Item item = (Item) itemList.get(itemIndex);
 
         AlertDialog.Builder editDialog = new AlertDialog.Builder(this);
-        View dialogView = getLayoutInflater().inflate(R.layout.fragment_new_item, null);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_new_item, null);
         editDialog.setView(dialogView);
         editDialog.setTitle("Edit Item");
         final EditText itemName = dialogView.findViewById(R.id.editName);

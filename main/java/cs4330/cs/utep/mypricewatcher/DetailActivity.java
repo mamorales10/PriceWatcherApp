@@ -63,12 +63,12 @@ public class DetailActivity extends AppCompatActivity {
     }
 
     public void onBackPressed(){
-        super.onBackPressed();
         Intent i = new Intent();
         i.putExtra("position", position);
         i.putExtra("price", Double.toString(item.getCurrent_Price()));
         setResult(RESULT_OK, i);
         finish();
+        super.onBackPressed();
     }
 
     private void displayPrices(){
