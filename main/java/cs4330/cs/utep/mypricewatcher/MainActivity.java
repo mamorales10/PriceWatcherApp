@@ -3,6 +3,7 @@ package cs4330.cs.utep.mypricewatcher;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -70,6 +71,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         registerForContextMenu(listView);
+
+        // Get the intent that started this activity
+        String action = getIntent().getAction();
+        String type = getIntent().getType();
+
+        // Figure out what to do based on the intent type
+        if (Intent.ACTION_SEND.equalsIgnoreCase(action) && type != null && ("text/plain").equals(type)) {
+            String url = getIntent().getStringExtra(Intent.EXTRA_TEXT);
+            showAddItemDialog(url);
+        }
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -129,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
     private void createMenu(Menu menu){
         MenuItem menuItem1 = menu.add(0, 0, 0, "Add Item");
     }
-    
+
     private boolean menuChoice(MenuItem item){
         switch(item.getItemId()){
             case 0:
@@ -151,6 +162,40 @@ public class MainActivity extends AppCompatActivity {
         addDialog.setMessage("Enter item information");
         final EditText itemName = (EditText) dialogView.findViewById(R.id.editName);
         final EditText itemURL = (EditText) dialogView.findViewById(R.id.editURL);
+        addDialog.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String name = itemName.getText().toString();
+                String url = itemURL.getText().toString();
+
+                PriceFinder priceFinder = new PriceFinder();
+
+                Item newItem = new Item(name, priceFinder.getPrice(url), url);
+                itemManager.addItem(newItem);
+                ArrayAdapter<Item> adapter = (ArrayAdapter) listView.getAdapter();
+                adapter.notifyDataSetChanged();
+            }
+        }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        AlertDialog dialog = addDialog.create();
+        dialog.show();
+
+    }
+
+    public void showAddItemDialog(String url){
+
+        AlertDialog.Builder addDialog = new AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_new_item, null);
+        addDialog.setView(dialogView);
+        addDialog.setTitle("Add Item");
+        addDialog.setMessage("Enter item information");
+        final EditText itemName = (EditText) dialogView.findViewById(R.id.editName);
+        final EditText itemURL = (EditText) dialogView.findViewById(R.id.editURL);
+        itemURL.setText(url);
         addDialog.setPositiveButton("Save", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
