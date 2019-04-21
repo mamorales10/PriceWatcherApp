@@ -14,6 +14,9 @@ public class ItemsAdapter extends ArrayAdapter<Item> {
     }
 
     public View getView(int position, View convertView, ViewGroup parent){
+
+
+
         Item item = getItem(position);
 
         if(convertView == null){

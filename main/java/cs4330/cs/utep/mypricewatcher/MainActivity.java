@@ -3,7 +3,11 @@ package cs4330.cs.utep.mypricewatcher;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.CursorIndexOutOfBoundsException;
 import android.net.Uri;
+import android.os.AsyncTask;
+import android.provider.DocumentsContract;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -19,33 +23,63 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+
 import android.view.ContextMenu;
 
-public class MainActivity extends AppCompatActivity {
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Attributes;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+public class MainActivity extends AppCompatActivity  {
 
     private ListView listView;
     private ItemManager itemManager;
-    private Item[] items = {new Item("Movie", 30.00, "https://www.amazon.com/AVENGERS-INFINITY-Robert-Downey-Jr/dp/B07BZC5KHW"),
-            new Item("Vizio TV", 999.00, "https://www.bestbuy.com/site/vizio-70-class-led-e-series-2160p-smart-4k-uhd-tv-with-hdr/6259880"),
-            new Item("Water Bottle", 1.00, "https://www.target.com/p/purified-water-24pk-16-9-fl-oz-bottles-market-pantry-153/-/A-13319038"),
-            new Item("Game", 59.99, "https://www.gamestop.com/product/ps4/games/sekiro-shadows-die-twice/164383"),
-            new Item("Roku Streaming Stick", 49.99, "https://www.roku.com/products/streaming-stick")};
+    private ItemDbAdapter db;
+    public double websitePrice;
+    WebSiteReader webReader = new WebSiteReader();
+    //ReadWebsiteTask readWebsiteTask = new ReadWebsiteTask();
+    protected static final String USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_main);
+        //readWebsiteTask.delegate = this;
+        db = new ItemDbAdapter(this);
 
+
+
+        db.open();
         itemManager = new ItemManager();
 
-        for(Item item : items){
-            itemManager.addItem(item);
+        Cursor c = db.getAllItems();
+        if(c.moveToFirst()) {
+            do {
+                int rowID = c.getInt(0);
+                String itemName = c.getString(1);
+                double itemIPrice = c.getFloat(2);
+                double itemCPrice = c.getFloat(3);
+                String itemURL = c.getString(4);
+                DatabaseItem item = new DatabaseItem(rowID, itemName, itemIPrice, itemURL);
+                item.setCurrent_Price(itemCPrice);
+                itemManager.addItem(item);
+            } while (c.moveToNext());
         }
+        c.close();
+        db.close();
 
-        ItemsAdapter adapter = new ItemsAdapter(this, itemManager.getItemList());
+        ItemsAdapter adapter = new ItemsAdapter(this, itemManager.getItemList());//itemManager.getItemList());
 
         listView = findViewById(R.id.listView);
         listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
@@ -58,11 +92,13 @@ public class MainActivity extends AppCompatActivity {
                 Item item = (Item) itemList.get(itemPosition - listView.getFirstVisiblePosition());
                 String name =  item.getName();
                 double price = item.getInitial_Price();
+                double currentPrice = item.getCurrent_Price();
                 String url = item.getUrl();
 
                 Intent i = new Intent(getApplicationContext(), DetailActivity.class);
                 i.putExtra("name", name);
                 i.putExtra("init", Double.toString(price));
+                i.putExtra("current", Double.toString(currentPrice));
                 i.putExtra("url", url);
                 i.putExtra("position", Integer.toString(itemPosition - listView.getFirstVisiblePosition()));
 
@@ -168,12 +204,42 @@ public class MainActivity extends AppCompatActivity {
                 String name = itemName.getText().toString();
                 String url = itemURL.getText().toString();
 
-                PriceFinder priceFinder = new PriceFinder();
 
-                Item newItem = new Item(name, priceFinder.getPrice(url), url);
-                itemManager.addItem(newItem);
-                ArrayAdapter<Item> adapter = (ArrayAdapter) listView.getAdapter();
-                adapter.notifyDataSetChanged();
+                if (url.contains("homedepot") || url.contains("academy") || url.contains("walmart")) {
+
+
+                    ReadWebsiteTask readWebsiteTask = new ReadWebsiteTask();//.execute(url);
+                    Log.d("tag", "This is websiteprice: " + websitePrice);
+                    try {
+                        websitePrice = Double.parseDouble(readWebsiteTask.execute(url).get().replace("$", ""));
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (ExecutionException ee) {
+                    }
+                    websitePrice = readWebsiteTask.whatever;
+
+                    Item newItem = new Item(name, websitePrice, url);
+                    Log.d("tag", "This is item.getInitialPrice " + newItem.getInitial_Price());
+
+                    db.open();
+                    long id = db.insertItem(newItem.getName(), websitePrice,
+                            websitePrice, newItem.getUrl(), newItem.getChange_Percentage());
+
+                    Cursor c = db.getAllItems();
+                    c.moveToLast();
+                    int rowID = c.getInt(0);
+                    db.close();
+                    c.close();
+
+                    DatabaseItem dbItem = new DatabaseItem(rowID, name, websitePrice, url);
+                    itemManager.addItem(dbItem);
+                    ArrayAdapter<Item> adapter = (ArrayAdapter) listView.getAdapter();
+                    adapter.notifyDataSetChanged();
+                }
+                else{
+                    Toast.makeText(getBaseContext(), "Malformed Url", Toast.LENGTH_LONG).show();
+                }
+
             }
         }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
@@ -202,10 +268,31 @@ public class MainActivity extends AppCompatActivity {
                 String name = itemName.getText().toString();
                 String url = itemURL.getText().toString();
 
-                PriceFinder priceFinder = new PriceFinder();
 
-                Item newItem = new Item(name, priceFinder.getPrice(url), url);
-                itemManager.addItem(newItem);
+                ReadWebsiteTask readWebsiteTask = new ReadWebsiteTask();//.execute(url);
+                Log.d("tag", "This is websiteprice: " + websitePrice);
+                try{
+                    websitePrice = Double.parseDouble(readWebsiteTask.execute(url).get().replace("$", ""));
+                }catch (InterruptedException e){
+                    e.printStackTrace();
+                }catch (ExecutionException ee){}
+                websitePrice = readWebsiteTask.whatever;
+
+                Item newItem = new Item(name, websitePrice, url);
+                Log.d("tag", "This is item.getInitialPrice "+ newItem.getInitial_Price());
+
+                db.open();
+                long id = db.insertItem(newItem.getName(), websitePrice,
+                        websitePrice, newItem.getUrl(), newItem.getChange_Percentage());
+
+                Cursor c = db.getAllItems();
+                c.moveToLast();
+                int rowID = c.getInt(0);
+                db.close();
+                c.close();
+
+                DatabaseItem dbItem = new DatabaseItem(rowID, name, websitePrice, url);
+                itemManager.addItem(dbItem);
                 ArrayAdapter<Item> adapter = (ArrayAdapter) listView.getAdapter();
                 adapter.notifyDataSetChanged();
             }
@@ -220,10 +307,11 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
     public void showEditItemDialog(int itemIndex){
 
         List itemList = itemManager.getItemList();
-        Item item = (Item) itemList.get(itemIndex);
+        DatabaseItem item = (DatabaseItem) itemList.get(itemIndex);
 
         AlertDialog.Builder editDialog = new AlertDialog.Builder(this);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_new_item, null);
@@ -241,11 +329,35 @@ public class MainActivity extends AppCompatActivity {
                 String name = itemName.getText().toString();
                 String url = itemURL.getText().toString();
 
+                ReadWebsiteTask readWebsiteTask = new ReadWebsiteTask();//.execute(url);
+                Log.d("tag", "This is websiteprice: " + websitePrice);
+                try{
+                    websitePrice = Double.parseDouble(readWebsiteTask.execute(url).get().replace("$", ""));
+                }catch (InterruptedException e){
+                    e.printStackTrace();
+                }catch (ExecutionException ee){}
+
+                Item newItem = new Item(name, websitePrice, url);
+                Log.d("tag", "This is item.getInitialPrice "+ newItem.getInitial_Price());
+
                 itemManager.editItemName(item, name);
                 itemManager.editItemURL(item, url);
-                ArrayAdapter<Item> adapter = (ArrayAdapter) listView.getAdapter();
 
+                item.setCurrent_Price(websitePrice);
+
+                ArrayAdapter<Item> adapter = (ArrayAdapter) listView.getAdapter();
                 adapter.notifyDataSetChanged();
+
+                db.open();
+                boolean itemUpdated = db.updateItem(item.getRowID(), name, item.getInitial_Price(),
+                        websitePrice, url, 0.0);
+                if(itemUpdated){
+                    Log.d("tag", "Item Updated");
+                }
+                else{
+                    Log.d("tag", "Update failed");
+                }
+                db.close();
             }
         }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
@@ -260,10 +372,124 @@ public class MainActivity extends AppCompatActivity {
 
     public void showDeleteItemDialog(int index){
         List itemList = itemManager.getItemList();
-        Item it = (Item) itemList.get(index);
+
+        DatabaseItem it = (DatabaseItem) itemList.get(index);
         itemManager.removeItem(it);
         ArrayAdapter<Item> adapter = ( ArrayAdapter) listView.getAdapter();
         adapter.notifyDataSetChanged();
+
+        db.open();
+        if(db.deleteItem(it.getRowID())){
+            Log.d("tag", "Delete successful.");
+        }
+        else{
+            Log.d("tag", "Delete failed.");
+        }
+
+        db.close();
+
     }
 
+    private static String parseHomeDepot(BufferedReader website){
+        Document doc;
+        String line;
+        try{
+            while((line = website.readLine()) != null){
+                doc = Jsoup.parse(line);
+                Element e = doc.getElementById("ciItemPrice");
+                if(e != null){
+                    //Log.d("tag", "tag found!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                    website.close();
+                    Attributes attributes = e.attributes();
+                    String price = attributes.get("value");
+                    return price;
+                }
+            }
+        }
+        catch (Exception e){
+            System.out.println(e.toString());
+        }
+        return null;
+    }
+
+    private static String parseWalmart(BufferedReader html){
+        Document doc;
+        String line;
+        try{
+            while((line = html.readLine()) != null){
+                doc = Jsoup.parse(line);
+                Element item = doc.getElementsByClass("price-group").first();
+                if(item != null){
+                    html.close();
+                    return item.attr("aria-label");
+                }
+            }
+        }
+        catch (Exception e){
+            System.out.println(e.toString());
+        }
+        return null;
+    }
+
+    private static String parseAcademy(BufferedReader html){
+        Document doc;
+        String line;
+        try{
+            while((line = html.readLine()) != null){
+                doc = Jsoup.parse(line);
+                Elements e = doc.getElementsByClass("css-1hyfx7x e1m4x7hc0");
+                if(!e.isEmpty()){
+                    Document innerDoc = Jsoup.parse(e.html());
+                    Element ee = innerDoc.getElementsByTag("span").get(1);
+                    String price = ee.html();
+                    html.close();
+                    return price;
+                }
+            }
+        }
+        catch (Exception e){
+            System.out.println(e.toString());
+        }
+        return null;
+    }
+
+    public class ReadWebsiteTask extends AsyncTask<String, Void, String> {
+        public AsyncResponse delegate = null;
+        double whatever = 1.0;
+
+        protected String doInBackground(String... urls) {
+            BufferedReader site = null;
+            String answer;
+
+            try {
+                site = webReader.openUrl(urls[0], USER_AGENT);
+            } catch (IOException e) {
+
+                e.printStackTrace();
+            }
+            String price;
+            if (urls[0].contains("homedepot")) {
+                price = parseHomeDepot(site);
+            } else if (urls[0].contains("academy")) {
+                price = parseAcademy(site);
+            } else if (urls[0].contains("walmart")) {
+                price = parseWalmart(site);
+            } else {
+                PriceFinder priceFinder = new PriceFinder();
+                price = Double.toString(priceFinder.getPrice(urls[0]));
+            }
+            Log.d("tag", "This is websiteprice: " + price);
+            String temp = price.replace("$", "");
+            whatever = Double.parseDouble(temp);
+            return price;
+        }
+
+
+
+    }
+
+
+
 }
+
+

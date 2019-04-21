@@ -80,8 +80,9 @@ public class ItemDbAdapter {
     public boolean deleteItem(long rowId){
         return db.delete(DB_TABLE, KEY_ROWID + "=" + rowId, null) > 0;
     }
+
     //---retrieves all items---
-    public Cursor getAllContacts(){
+    public Cursor getAllItems(){
         return db.query(DB_TABLE, new String[] {KEY_ROWID, KEY_NAME, KEY_IPRICE, KEY_CPRICE, KEY_URL, KEY_CHANGE},
                 null, null, null, null, null);
     }
@@ -94,6 +95,7 @@ public class ItemDbAdapter {
         }
         return mCursor;
     }
+
     //---updates an item---
     public boolean updateItem(long rowId, String name, double init_price, double current_price, String url, double percent){
         ContentValues args = new ContentValues();
